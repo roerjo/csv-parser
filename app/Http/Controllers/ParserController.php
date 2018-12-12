@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Helpers\CsvTransformer;
 use App\Http\Requests\Parser\StoreRequest;
+use App\Jobs\ParseReviewers;
 
 class ParserController extends Controller
 {
@@ -18,6 +19,8 @@ class ParserController extends Controller
     {
         $csvFile = $request->file('csv_data');
 
-        $potentialReviewers = CsvTransformer::transform($csvFile);
+        ParseReviewers::dispatch($csvFile);
+
+        return response()->view('home')->setStatusCode(204);
     }
 }

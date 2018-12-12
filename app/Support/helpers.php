@@ -1,18 +1,12 @@
 <?php
-
-namespace App\Helpers;
-
-use Illuminate\Http\UploadedFile;
-
-class CsvTransformer
-{
+if (!function_exists('csvToArray')) {
     /**
      * Transform csv file into collection
      *
-     * @param UploadedFile $csvFile
-     * @return \Illuminate\Support\Collection
+     * @param \Illuminate\Http\UploadedFile $csvFile
+     * @return array $csvArr
      */
-    public static function transform(UploadedFile $csvFile)
+    function csvToArray(Illuminate\Http\UploadedFile $csvFile)
     {
         // convert the csv file into an array
         $csvArr = array_map('str_getcsv', file($csvFile));
@@ -25,6 +19,6 @@ class CsvTransformer
         // remove the header row
         array_shift($csvArr);
 
-        return collect($csvArr);
+        return $csvArr;
     }
 }
