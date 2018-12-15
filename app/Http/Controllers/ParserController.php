@@ -17,9 +17,9 @@ class ParserController extends Controller
      */
     public function store(StoreRequest $request)
     {
-        $csvFile = $request->file('csv_data');
+        $path = $request->file('csv_data')->storeAs('csv-files', '1.csv');
 
-        ParseReviewers::dispatch($csvFile);
+        ParseReviewers::dispatch($path);
 
         return response()->view('home')->setStatusCode(204);
     }

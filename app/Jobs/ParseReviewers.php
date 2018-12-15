@@ -6,32 +6,33 @@ use Validator;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use App\Events\ReviewerParsed;
-use Illuminate\Http\UploadedFile;
+use Illuminate\Http\File;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Support\Facades\Storage;
 
 class ParseReviewers implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * Uploaded csv file
+     * Contents of the csv file
      *
-     * @var Illuminate\Http\UploadedFile
+     * @var string
      */
-    private $csvFile;
+    private $csvContents;
 
     /**
      * Create a new job instance.
      *
-     * @param \Illuminate\Http\Uploaded $csvFile
+     * @param string $path
      * @return void
      */
-    public function __construct(UploadedFile $csvFile)
+    public function __construct(string $path)
     {
-        $this->csvFile = $csvFile;
+        $this->csvContents = Storage::get($path);
     }
 
     /**
@@ -41,7 +42,7 @@ class ParseReviewers implements ShouldQueue
      */
     public function handle()
     {
-        $this->reviewers = csvToArray($this->csvFile);
+        $this->reviewers = csvToArray($this->csvContents);
 
         foreach($this->reviewers as $reviewer) {
             $this->addFields($reviewer);
