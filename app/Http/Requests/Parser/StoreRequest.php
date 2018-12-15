@@ -27,10 +27,10 @@ class StoreRequest extends FormRequest
             'csv_data' => [
                 'required',
                 'file',
-                // Testing with UploadedFile ruins the use of the `mimes` or
+                // Testing with UploadedFile ruins the use of the `mimes` and
                 // the `mimestype` rule. Using a one-off closure rule instead.
                 function ($attribute, $value, $fail) {
-                    if ($value->getClientOriginalExtension() !== 'csv') {
+                    if ($value->getClientMimeType() !== 'text/csv') {
                         $fail($attribute.' must be a csv file');
                     }
                 },

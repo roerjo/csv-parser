@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Helpers\CsvTransformer;
-use App\Http\Requests\Parser\StoreRequest;
+use Storage;
 use App\Jobs\ParseReviewers;
+use App\Http\Requests\Parser\StoreRequest;
 
 class ParserController extends Controller
 {
@@ -17,7 +16,11 @@ class ParserController extends Controller
      */
     public function store(StoreRequest $request)
     {
-        $path = $request->file('csv_data')->storeAs('csv-files', '1.csv');
+        $path = Storage::putFileAs(
+            'csv-files',
+            $request->file('csv_data'),
+            $request->file('csv_data')->getClientOriginalName().'.csv'
+        );
 
         ParseReviewers::dispatch($path);
 

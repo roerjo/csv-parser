@@ -2,16 +2,15 @@
 
 namespace App\Jobs;
 
+use Storage;
 use Validator;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use App\Events\ReviewerParsed;
-use Illuminate\Http\File;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Support\Facades\Storage;
 
 class ParseReviewers implements ShouldQueue
 {
@@ -55,7 +54,13 @@ class ParseReviewers implements ShouldQueue
         }
     }
 
-    private function addFields(&$reviewer)
+    /**
+     * Add the invite and errors fields to the reviewer array
+     *
+     * @param array $reviewer
+     * @return void
+     */
+    private function addFields(array &$reviewer)
     {
         $additionalFields = [
             'invite_sent'   => false,
@@ -67,7 +72,13 @@ class ParseReviewers implements ShouldQueue
         $reviewer = array_merge($reviewer, $additionalFields);
     }
 
-    private function validate(&$reviewer)
+    /**
+     * Validate the reviewer data
+     *
+     * @param array $reviewer
+     * @return void
+     */
+    private function validate(array &$reviewer)
     {
         $validator = Validator::make($reviewer, [
             'trans_type'    => 'required|in:sales,service',
@@ -84,44 +95,73 @@ class ParseReviewers implements ShouldQueue
         }
     }
 
+    /**
+     * Set that invite fields on the reviewer
+     *
+     * @param array $reviewer
+     * @return void
+     */
     private function resolveInviteStatus(&$reviewer)
     {
+        // script runs as if today is March 5, 2018
         $now = now()->setDate(2018, 3, 5);
         $transDateTime = $reviewer['trans_date'].' '.$reviewer['trans_time'];
         $dayDiff = $now->diffInDays($transDateTime);
 
         if ($dayDiff <= 7) {
-            $sameReviewer = array_filter(
-                $this->reviewers,
-                function ($user) use ($reviewer) {
-                    if ($user['cust_num'] === $reviewer['cust_num']) {
-                        return true;
-                    }
+
+            $isDuplicate = $this->resolveDuplicateUsers($reviewer);
+
+            if (!$isDuplicate) {
+
+                if (isset($reviewer['cust_phone'])) {
+                    $reviewer['invite_method']  = 'phone';
+                } elseif (isset($reviewer['cust_email'])) {
+                    $reviewer['invite_method']  = 'email';
                 }
-            );
 
-            if (count($sameReviewer) > 1) {
-                usort($sameReviewer, function ($dup1, $dup2) {
-                    return $dup1['trans_time'] <=> $dup2['trans_time'];
-                });
+                $reviewer['invite_sent'] = true;
+                $reviewer['invite_type'] = $reviewer['trans_type'];
 
-                usort($sameReviewer, function ($dup1, $dup2) {
-                    return $dup1['trans_date'] <=> $dup2['trans_date'];
-                });
-
-                if ($reviewer != $sameReviewer[0]) {
-                    return;
-                }
             }
-
-            if (isset($reviewer['cust_phone'])) {
-                $reviewer['invite_method']  = 'phone';
-            } elseif (isset($reviewer['cust_email'])) {
-                $reviewer['invite_method']  = 'email';
-            }
-
-            $reviewer['invite_sent'] = true;
-            $reviewer['invite_type'] = $reviewer['trans_type'];
         }
+    }
+
+    /**
+     * Determine if reviewer is duplicate
+     *
+     * @param array $reviewer
+     * @return void
+     */
+    private function resolveDuplicateUsers($reviewer)
+    {
+        // find the duplicates
+        $sameReviewer = array_filter(
+            $this->reviewers,
+            function ($user) use ($reviewer) {
+                if ($user['cust_num'] === $reviewer['cust_num']) {
+                    return true;
+                }
+            }
+        );
+
+        // sort duplicates by date and time
+        if (count($sameReviewer) > 1) {
+
+            usort($sameReviewer, function ($dup1, $dup2) {
+                return $dup1['trans_time'] <=> $dup2['trans_time'];
+            });
+
+            usort($sameReviewer, function ($dup1, $dup2) {
+                return $dup1['trans_date'] <=> $dup2['trans_date'];
+            });
+
+        }
+
+        // reset keys
+        $sameReviewer = array_values($sameReviewer);
+
+        // only first user (oldest) is considered non-duplicate
+        return ($reviewer === $sameReviewer[0]) ? false : true;
     }
 }
