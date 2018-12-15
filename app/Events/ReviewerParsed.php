@@ -39,6 +39,8 @@ class ReviewerParsed implements ShouldBroadcast
      */
     public function broadcastOn()
     {
+        // pause for half second for populating effect on client
+        usleep(500000);
         return new Channel('reviewer');
     }
 }

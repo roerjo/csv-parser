@@ -44,6 +44,7 @@ class ParseReviewers implements ShouldQueue
         $this->reviewers = csvToArray($this->csvContents);
 
         foreach($this->reviewers as $reviewer) {
+            $this->reviewer = $reviewer;
             $this->addFields($reviewer);
             $this->validate($reviewer);
             if (empty($reviewer['errors'])) {
@@ -80,6 +81,21 @@ class ParseReviewers implements ShouldQueue
      */
     private function validate(array &$reviewer)
     {
+        // script runs as if today is March 5, 2018
+        $now = now()->setDate(2018, 3, 5);
+        $transDateTime = $reviewer['trans_date'].' '.$reviewer['trans_time'];
+        $dayDiff = $now->diffInDays($transDateTime);
+
+        if ($dayDiff >= 7) {
+            $reviewer['errors'][] = '<li>Too old</li>';
+        }
+
+        $isDuplicate = $this->resolveDuplicateUsers($this->reviewer);
+
+        if ($isDuplicate) {
+            $reviewer['errors'][] = '<li>Duplicate</li>';
+        }
+
         $validator = Validator::make($reviewer, [
             'trans_type'    => 'required|in:sales,service',
             'trans_date'    => 'required|date_format:"Y-m-d"',
@@ -91,7 +107,11 @@ class ParseReviewers implements ShouldQueue
         ]);
 
         if ($validator->fails()) {
-            $reviewer['errors'] = $validator->errors()->messages();
+            $errors = implode(
+                '',
+                $validator->errors()->all('<li>:message</li>')
+            );
+            $reviewer['errors'] = $errors;
         }
     }
 
@@ -103,28 +123,14 @@ class ParseReviewers implements ShouldQueue
      */
     private function resolveInviteStatus(&$reviewer)
     {
-        // script runs as if today is March 5, 2018
-        $now = now()->setDate(2018, 3, 5);
-        $transDateTime = $reviewer['trans_date'].' '.$reviewer['trans_time'];
-        $dayDiff = $now->diffInDays($transDateTime);
-
-        if ($dayDiff <= 7) {
-
-            $isDuplicate = $this->resolveDuplicateUsers($reviewer);
-
-            if (!$isDuplicate) {
-
-                if (isset($reviewer['cust_phone'])) {
-                    $reviewer['invite_method']  = 'phone';
-                } elseif (isset($reviewer['cust_email'])) {
-                    $reviewer['invite_method']  = 'email';
-                }
-
-                $reviewer['invite_sent'] = true;
-                $reviewer['invite_type'] = $reviewer['trans_type'];
-
-            }
+        if (isset($reviewer['cust_phone'])) {
+            $reviewer['invite_method']  = 'phone';
+        } elseif (isset($reviewer['cust_email'])) {
+            $reviewer['invite_method']  = 'email';
         }
+
+        $reviewer['invite_sent'] = true;
+        $reviewer['invite_type'] = $reviewer['trans_type'];
     }
 
     /**
@@ -161,7 +167,6 @@ class ParseReviewers implements ShouldQueue
         // reset keys
         $sameReviewer = array_values($sameReviewer);
 
-        // only first user (oldest) is considered non-duplicate
         return ($reviewer === $sameReviewer[0]) ? false : true;
     }
 }

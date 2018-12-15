@@ -31,10 +31,23 @@ class StoreRequest extends FormRequest
                 // the `mimestype` rule. Using a one-off closure rule instead.
                 function ($attribute, $value, $fail) {
                     if ($value->getClientMimeType() !== 'text/csv') {
-                        $fail($attribute.' must be a csv file');
+                        $fail('Only CSV files allowed');
                     }
                 },
             ],
+        ];
+    }
+
+    /**
+     * Get the error messages for the defined validation rules.
+     *
+     * @return array
+     */
+    public function messages()
+    {
+        return [
+            'csv_data.required' => 'A CSV file is required',
+            'csv_data.file' => 'The file did not upload successfully',
         ];
     }
 }

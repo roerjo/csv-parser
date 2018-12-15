@@ -24,6 +24,7 @@ class ParserController extends Controller
 
         ParseReviewers::dispatch($path);
 
+        $request->session()->forget('errors');
         return response()->view('home')->setStatusCode(204);
     }
 }
