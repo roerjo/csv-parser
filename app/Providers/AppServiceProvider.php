@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Validator;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -13,7 +14,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        Validator::extend('phone', function ($attribute, $value, $parameters, $validator) {
+            // remove non-numeric characters
+            $phoneNum = preg_filter('/[^\d]/', '', $value) ?? $value;
+
+            return mb_strlen($phoneNum) === 10;
+        });
     }
 
     /**

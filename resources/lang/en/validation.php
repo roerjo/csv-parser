@@ -13,6 +13,12 @@ return [
     |
     */
 
+    // custom messages
+
+    'phone' => 'The :attribute must be 10 digits',
+
+    // framework messages
+
     'accepted' => 'The :attribute must be accepted.',
     'active_url' => 'The :attribute is not a valid URL.',
     'after' => 'The :attribute must be a date after :date.',
