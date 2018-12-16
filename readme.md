@@ -37,3 +37,7 @@ After the able is fininshed, the applications should be accessible via a local s
 - Run `php artisan migrate`
 - Change `QUEUE_CONNECTION` to `database` in `.env` file
 - Run `php artisan queue:work` to handle processing the stored jobs.
+
+## Tests
+
+- Run `vendor/bin/phpunit --color tests/` to the run the testsuite
