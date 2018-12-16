@@ -16,15 +16,15 @@ class ParserController extends Controller
      */
     public function store(StoreRequest $request)
     {
+        // store file for later use by the queued job
         $path = Storage::putFileAs(
             'csv-files',
             $request->file('csv_data'),
-            $request->file('csv_data')->getClientOriginalName().'.csv'
+            $request->file('csv_data')->getClientOriginalName()
         );
 
         ParseReviewers::dispatch($path);
 
-        $request->session()->forget('errors');
         return response()->view('home')->setStatusCode(204);
     }
 }

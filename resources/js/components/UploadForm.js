@@ -5,6 +5,8 @@ export default class UploadForm extends Component {
 
 
     render() {
+
+        // remove previous results when uploading a new CSV file
         function resetTable(e) {
             e.stopPropagation();
             let newBody = document.createElement('tbody');

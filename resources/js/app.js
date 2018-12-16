@@ -14,4 +14,4 @@ require('./bootstrap');
  */
 
 require('./components/UploadForm');
-require('./components/ReviewerEntries');
+require('./buildReviewerEntry');

@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use Log;
 use Storage;
 use Validator;
 use Carbon\Carbon;
@@ -17,21 +18,36 @@ class ParseReviewers implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * Contents of the csv file
+     * File path to the CSV file
+     *
+     * @var string
+     */
+    private $csvPath;
+
+    /**
+     * Contents of the CSV file
      *
      * @var string
      */
     private $csvContents;
 
     /**
+     * Reviewers to be parsed
+     *
+     * @var array
+     */
+    private $reviewers;
+
+    /**
      * Create a new job instance.
      *
-     * @param string $path
+     * @param string $csvPath
      * @return void
      */
-    public function __construct(string $path)
+    public function __construct(string $csvPath)
     {
-        $this->csvContents = Storage::get($path);
+        $this->csvPath = $csvPath;
+        $this->csvContents = Storage::get($csvPath);
     }
 
     /**
@@ -44,15 +60,27 @@ class ParseReviewers implements ShouldQueue
         $this->reviewers = csvToArray($this->csvContents);
 
         foreach($this->reviewers as $reviewer) {
-            $this->reviewer = $reviewer;
-            $this->addFields($reviewer);
-            $this->validate($reviewer);
-            if (empty($reviewer['errors'])) {
-                $this->resolveInviteStatus($reviewer);
-            }
 
-            event(new ReviewerParsed($reviewer));
+            $this->reviewer = $reviewer;
+
+            try {
+                $this->addFields($reviewer);
+                $this->validate($reviewer);
+
+                if (empty($reviewer['errors'])) {
+                    $this->resolveInviteStatus($reviewer);
+                }
+
+                event(new ReviewerParsed($reviewer));
+            } catch (\Exception $e) {
+                // don't let one bad reviewer prevent the rest of the array
+                // from being parsed
+                Log::error($e->getMessage());
+                continue;
+            }
         }
+
+        Storage::delete($this->csvPath);
     }
 
     /**
@@ -67,7 +95,7 @@ class ParseReviewers implements ShouldQueue
             'invite_sent'   => false,
             'invite_method' => null,
             'invite_type'   => null,
-            'errors'        => [],
+            'errors'        => '',
         ];
 
         $reviewer = array_merge($reviewer, $additionalFields);
@@ -84,16 +112,15 @@ class ParseReviewers implements ShouldQueue
         // script runs as if today is March 5, 2018
         $now = now()->setDate(2018, 3, 5);
         $transDateTime = $reviewer['trans_date'].' '.$reviewer['trans_time'];
-        $dayDiff = $now->diffInDays($transDateTime);
 
+        $dayDiff = $now->diffInDays($transDateTime);
         if ($dayDiff >= 7) {
-            $reviewer['errors'][] = '<li>Too old</li>';
+            $reviewer['errors'] .= '<li>Too old</li>';
         }
 
         $isDuplicate = $this->resolveDuplicateUsers($this->reviewer);
-
         if ($isDuplicate) {
-            $reviewer['errors'][] = '<li>Duplicate</li>';
+            $reviewer['errors'] .= '<li>Duplicate</li>';
         }
 
         $validator = Validator::make($reviewer, [
@@ -111,7 +138,7 @@ class ParseReviewers implements ShouldQueue
                 '',
                 $validator->errors()->all('<li>:message</li>')
             );
-            $reviewer['errors'] = $errors;
+            $reviewer['errors'] .= $errors;
         }
     }
 
@@ -125,7 +152,7 @@ class ParseReviewers implements ShouldQueue
     {
         if (isset($reviewer['cust_phone'])) {
             $reviewer['invite_method']  = 'phone';
-        } elseif (isset($reviewer['cust_email'])) {
+        } else {
             $reviewer['invite_method']  = 'email';
         }
 

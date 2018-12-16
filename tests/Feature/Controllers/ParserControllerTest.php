@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use Bus;
-use Storage;
 use Tests\TestCase;
 use App\Jobs\ParseReviewers;
 use Illuminate\Http\UploadedFile;
@@ -38,7 +37,6 @@ class ParserControllerTest extends TestCase
     public function testItPassesValidation()
     {
         Bus::fake();
-        Storage::fake();
 
         $csvFile = new UploadedFile('tests/test-data.csv', 'test-data', 'text/csv', null, true);
 
@@ -50,7 +48,6 @@ class ParserControllerTest extends TestCase
         //dd($response);
         $response->assertStatus(204);
 
-        Storage::assertExists('csv-files/test-data.csv');
         Bus::assertDispatched(ParseReviewers::class);
     }
 }
