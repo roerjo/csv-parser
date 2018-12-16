@@ -1,5 +1,3 @@
-<p align="center"><img src="https://laravel.com/assets/img/components/logo-laravel.svg"></p>
-
 ## About CSV Parser
 
 CSV Parser handles the upload the upload of a CSV file, parsing and validating the file, and displaying results to the user. It is built with the following components:
