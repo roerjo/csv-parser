@@ -4,7 +4,7 @@ Based on these instructions: [CSV Parser Instructions](https://docs.google.com/d
 
 Demo version: [CSV Parser Demo](http://csv-parser.roerjo.me)
 
-[Test Data](https://raw.githubusercontent.com/roerjo/csv-parser/master/tests/test-data.csv) (right click and save and then use this on the form)
+[Test Data](https://raw.githubusercontent.com/roerjo/csv-parser/master/tests/test-data.csv) (right click and save as CSV file and then use the downloaded file on the demo site)
 
 CSV Parser handles the upload the upload of a CSV file, parsing and validating the file, and displaying results to the user. It is built with the following components:
 
